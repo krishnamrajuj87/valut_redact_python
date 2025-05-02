@@ -77,6 +77,9 @@ def fetch_template_by_id(template_id: str) -> dict:
 def fetch_rules_by_ids(rule_ids: list) -> list:
     db = get_firestore_client()
     rules = []
+    remaining_rule_ids = rule_ids.copy()
+    
+    # First check redaction_rules
     for rule_id in rule_ids:
         rule_ref = db.collection('redaction_rules').document(rule_id)
         rule = rule_ref.get()
@@ -84,6 +87,17 @@ def fetch_rules_by_ids(rule_ids: list) -> list:
             rule_data = rule.to_dict()
             rule_data["id"] = rule_id
             rules.append(rule_data)
+            remaining_rule_ids.remove(rule_id)
+    
+    # Then check standard_rules only for remaining IDs
+    for rule_id in remaining_rule_ids:
+        rule_ref = db.collection('standard_rules').document(rule_id)
+        rule = rule_ref.get()
+        if rule.exists:
+            rule_data = rule.to_dict()
+            rule_data["id"] = rule_id
+            rules.append(rule_data)
+            
     return rules
 
 def save_redaction_response(response: dict) -> None:

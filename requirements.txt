@@ -8,3 +8,4 @@ firebase-admin
 google-generativeai
 PyPDF2
 dotenv
+stanza

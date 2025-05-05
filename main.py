@@ -166,7 +166,7 @@ async def redact_document(request: RedactRequest):
         for r in rules_data:
             print(r)
             rule_type = r.get("type")
-            value = r.get("pattern")
+            value = r.get("pattern") if rule_type != "spacy" else r.get("key")
             name = r.get("name", "Unnamed Rule")
             rule_id = r.get("id", "No ID")
             if rule_type and value:

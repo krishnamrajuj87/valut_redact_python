@@ -2,6 +2,10 @@ import fitz  # PyMuPDF
 import requests
 import re
 from typing import List, Dict, Any
+from utils.ner import NERProcessor
+
+# Initialize NER processor
+ner_processor = NERProcessor()
 
 class RedactionRule:
     def __init__(self, type_: str, value: str, name: str, rule_id: str, is_ai_detected: bool):
@@ -15,6 +19,30 @@ def fetch_document(url: str) -> bytes:
     response = requests.get(url)
     response.raise_for_status()
     return response.content
+
+def getSpacyText(text, value):
+    """
+    Extract entities from text using NER processor.
+    
+    Args:
+        text (str): The text to process
+        value (str or list): The entity type(s) to extract
+        
+    Returns:
+        list: List of extracted entities
+    """
+    try:
+        entities = ner_processor.extract_entities(text)
+        # Filter entities by type if specified
+        if value:
+            # Convert single value to list for consistent handling
+            entity_types = [value] if isinstance(value, str) else value
+            # Filter entities by any of the specified types
+            entities = [ent for ent in entities if ent['type'].lower() in [t.lower() for t in entity_types]]
+        return [ent['text'] for ent in entities]
+    except Exception as e:
+        print(f"Error in getSpacyText: {e}")
+        return []
 
 def redact_pdf(document_bytes: bytes, rules: List[RedactionRule], template_id: str) -> Dict[str, Any]:
     doc = fitz.open(stream=document_bytes, filetype="pdf")
@@ -35,6 +63,15 @@ def redact_pdf(document_bytes: bytes, rules: List[RedactionRule], template_id: s
                 matches = [(m.start(), m.end(), m.group()) for m in re.finditer(re.escape(rule.value), text)]
             elif rule.type == 'regex':
                 matches = [(m.start(), m.end(), m.group()) for m in re.finditer(rule.value, text)]
+            elif rule.type == 'spacy':
+                matches = []
+                # Get all matching entities
+                entities = getSpacyText(initial_text, rule.value)
+                # Create matches for each entity
+                for entity in entities:
+                    # Find all occurrences of this entity in the text
+                    entity_matches = [(m.start(), m.end(), m.group()) for m in re.finditer(re.escape(entity), text)]
+                    matches.extend(entity_matches)
             else:
                 continue
             for start, end, match_text in matches:

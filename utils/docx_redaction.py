@@ -91,7 +91,7 @@ def redact_docx(document_bytes: bytes, rules: List[RedactionRule], template_id: 
     out.seek(0)
     # Extract final text for after_text
     final_text = ""
-    doc_final = Document(BytesIO(out.read()))
+    doc_final = Document(BytesIO(out.getvalue()))
     for para in doc_final.paragraphs:
         final_text += para.text + "\n"
     report["after_text"] = final_text
@@ -101,4 +101,5 @@ def redact_docx(document_bytes: bytes, rules: List[RedactionRule], template_id: 
         before_text_md = before_text_md.replace(redaction["text"], f"<span style='background-color: yellow;'>{redaction['text']}</span>")
     report["before_text"] = before_text_md
     report["total_redactions"] = total_redactions
+    out.seek(0)  # Ensure pointer is at the start before reading
     return {"redacted_docx": out.read(), "report": report} 

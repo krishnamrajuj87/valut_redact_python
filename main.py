@@ -179,6 +179,7 @@ async def redact_document(request: RedactRequest):
         url = document_url.split("?")[0].strip()
         ext = os.path.splitext(url)[1].lower()
         original_filename = os.path.basename(url)
+
         last_modified = original_filename.split("%2F")[-1]
         print(last_modified)
         # Detect file type and redact
@@ -195,7 +196,8 @@ async def redact_document(request: RedactRequest):
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
         # Upload to Firebase in user_id/redacted/original_filename
-        upload_path = f"{request.user_id}/redacted/{original_filename}"
+        print(original_filename,last_modified)
+        upload_path = f"documents/{request.user_id}/redacted/{last_modified}"
         file_url = upload_file_to_firebase(file_bytes, upload_path)
         doc_id = f"{request.document_id}_{request.template_id}"
         response = {
@@ -212,7 +214,7 @@ async def redact_document(request: RedactRequest):
             "original_url": document_url,
             "original_filename": original_filename,
             "last_modified": last_modified,
-            "redacted_filename": original_filename.replace(ext, "_redacted" + ext)
+            "redacted_filename": last_modified.replace(ext, "_redacted" + ext)
         }
         # Save response in Firestore
         save_redaction_response(response)
